@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BorrowPal — Founder Edition (Multi-user)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#070016; --bg2:#130033; --accent1:#8b5cf6; --accent2:#3b82f6; --card: rgba(255,255,255,0.06);
+    --muted:#9aa0b4; --success:#60d394; --danger:#ff6b6b; --glass: rgba(255,255,255,0.03);
+    --light-bg:#f7f9fc; --light-text:#0b1220;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:'Poppins',system-ui,Segoe UI,Roboto,Arial;
+    background: radial-gradient(1200px 600px at 20% 15%, #1a0049 0%, var(--bg2) 30%, var(--bg1) 100%);
+    color:#fff;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  /* layout containers */
+  .screen{
+    width:960px;
+    max-width:96%;
+    max-height:92vh;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:14px;
+    padding:18px;
+    box-shadow:0 30px 60px rgba(6,6,30,0.6);
+    display:none;
+    overflow:auto;
+  }
+  .screen.active{ display:block }
+
+  .centerRow{ display:flex; gap:18px; align-items:flex-start; }
+  .leftCol{ width:300px; min-width:220px; }
+  .rightCol{ flex:1; min-width:320px; }
+
+  .logo{
+    width:72px;height:72px;border-radius:12px;background:linear-gradient(180deg,var(--accent1),var(--accent2));
+    display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:20px;box-shadow:0 8px 30px rgba(59,130,246,0.14);
+  }
+
+  h1,h2,h3{ margin:0 0 8px 0 }
+  label{display:block;color:var(--muted);font-size:0.85rem;margin:8px 0 6px}
+  input,select,textarea{width:100%;padding:10px;border-radius:10px;border:none;background:rgba(255,255,255,0.03);color:#fff}
+  textarea{ min-height:90px; resize:vertical }
+  .btn{display:inline-block;padding:10px 14px;border-radius:10px;background:linear-gradient(90deg,var(--accent1),var(--accent2));border:none;color:#fff;font-weight:700;cursor:pointer}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+  .muted{color:var(--muted)}
+  .small{font-size:0.85rem;color:var(--muted)}
+  .linklike{background:none;border:none;color:var(--accent2);cursor:pointer;font-weight:700}
+
+  /* auth specific */
+  .authGrid{ display:flex; gap:18px; align-items:stretch; }
+  .authCard{ flex:1; background:rgba(0,0,0,0.18); padding:18px; border-radius:10px; min-height:220px }
+  .authFooter{ margin-top:12px; display:flex; gap:8px; align-items:center }
+
+  /* app styles (home) */
+  header.appbar{
+    display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03);
+  }
+  header .brand{display:flex;align-items:center;gap:12px}
+  .pill{background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:999px;color:#e8e2ff;font-weight:600;border:1px solid rgba(255,255,255,0.03)}
+  .mainArea{ display:flex; gap:16px; padding-top:12px }
+  .sidebar{ width:240px; background:rgba(255,255,255,0.02); padding:12px; border-radius:10px }
+  .navitem{ display:block; padding:10px; border-radius:8px; color:var(--muted); margin-bottom:8px; cursor:pointer }
+  .navitem.active{ background: linear-gradient(90deg, rgba(139,92,246,0.12), rgba(59,130,246,0.06)); color:#fff }
+
+  .content{ flex:1; background:rgba(255,255,255,0.02); padding:12px; border-radius:10px; min-height:320px; overflow:auto }
+
+  /* responsive */
+  @media(max-width:880px){
+    .centerRow{ flex-direction:column }
+    .leftCol{ width:100% }
+    .sidebar{ display:none }
+    body{ padding:12px }
+  }
+
+  /* light theme */
+  body.theme-light{
+    background: linear-gradient(120deg, #f7fafc, #eef2ff);
+    color: var(--light-text);
+  }
+  body.theme-light .screen{ background:white; color:var(--light-text) }
+  body.theme-light input, body.theme-light textarea{ background:#f0f4f8; color:var(--light-text) }
+
+  /* small helpers */
+  .row{ display:flex; gap:8px }
+  .spacer{ height:12px }
+  .rightAlign{ text-align:right }
+</style>
+</head>
+<body>
+  <!-- ========== AUTH SCREENS (separate, non-overlapping) ========== -->
+  <section id="auth_signin" class="screen active" aria-label="Sign in">
+    <div class="centerRow">
+      <div class="leftCol">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="logo">BP</div>
+          <div>
+            <h2>BorrowPal</h2>
+            <div class="small">Founder Edition</div>
+          </div>
+        </div>
+
+        <div style="margin-top:18px" class="authCard">
+          <h3>Welcome back</h3>
+          <div class="small muted">Sign in to continue to your account</div>
+          <div class="spacer"></div>
+
+          <label>Username</label><input id="signinUser" placeholder="username">
+          <label>Password</label><input id="signinPass" type="password" placeholder="password">
+          <div class="authFooter">
+            <button class="btn" id="signinBtn">Sign in</button>
+            <button class="btn ghost" id="gotoCreate">Create account</button>
+            <button class="btn ghost" id="gotoRecover">Forgot?</button>
+          </div>
+          <div id="signinMsg" class="small muted" style="margin-top:10px"></div>
+        </div>
+
+      </div>
+
+      <div class="rightCol">
+        <div class="authCard">
+          <h3>Quick info</h3>
+          <p class="small muted">This is a local-first demo: accounts and data are stored in your browser's localStorage. You can create multiple usernames. Use the 'Forgot?' flow to recover a password if you set a security question.</p>
+
+          <div style="margin-top:12px">
+            <h4>Tips</h4>
+            <ul class="small muted">
+              <li>Create a meaningful security question (used for recovery).</li>
+              <li>Use Export CSV to backup your records.</li>
+              <li>Change theme later from Settings.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="auth_create" class="screen" aria-label="Create account">
+    <div style="display:flex;gap:18px;align-items:flex-start">
+      <div style="width:320px">
+        <div class="logo">BP</div>
+        <div style="height:12px"></div>
+        <h3>Create account</h3>
+        <div class="small muted">Fill details to create a local account</div>
+      </div>
+
+      <div style="flex:1">
+        <div class="authCard">
+          <label>Choose username</label><input id="createUser" placeholder="username">
+          <label>Password</label><input id="createPass" type="password" placeholder="password">
+          <label>Display name</label><input id="createName" placeholder="Your name">
+          <label>Email</label><input id="createEmail" placeholder="you@example.com">
+          <label>Phone</label><input id="createPhone" placeholder="9876543210">
+          <label>Security question (for recovery)</label><input id="createQ" placeholder="e.g. Your school name">
+          <label>Answer</label><input id="createA" placeholder="answer">
+          <div style="margin-top:12px">
+            <button class="btn" id="createBtn">Create</button>
+            <button class="btn ghost" id="backToSignInFromCreate">Back</button>
+            <div id="createMsg" class="small muted" style="margin-top:8px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="auth_recover" class="screen" aria-label="Recover account">
+    <div style="display:flex;gap:18px;align-items:flex-start">
+      <div style="width:320px">
+        <div class="logo">BP</div>
+        <div style="height:12px"></div>
+        <h3>Recover account</h3>
+        <div class="small muted">Reset password using your security question</div>
+      </div>
+
+      <div style="flex:1">
+        <div class="authCard">
+          <label>Username</label><input id="recUser" placeholder="username">
+          <div style="height:8px"></div>
+          <button class="btn ghost" id="findUserBtn">Find</button>
+          <div id="recoverStep" style="margin-top:12px"></div>
+          <div style="margin-top:12px">
+            <button class="btn ghost" id="backToSignInFromRecover">Back</button>
+            <div id="recoverMsg" class="small muted" style="margin-top:8px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== MAIN APP SCREEN (hidden until login) ========== -->
+  <section id="appScreen" class="screen" aria-label="BorrowPal App" style="display:none">
+    <header class="appbar">
+      <div class="brand">
+        <div class="logo" style="width:52px;height:52px;font-size:18px">BP</div>
+        <div>
+          <h3>BorrowPal</h3>
+          <div class="small">Founder Edition</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="pill" id="welcomeP">Hi, Founder</div>
+        <button class="btn ghost" id="themeToggle">Theme</button>
+        <button class="btn ghost" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <div class="mainArea">
+      <aside class="sidebar">
+        <div style="font-weight:800;margin-bottom:8px" id="pfNameSidebar">Founder</div>
+        <div class="small muted" id="pfEmailSidebar">founder@example.com</div>
+        <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+        <div class="navitem active" data-tab="dashboard" onclick="switchTab('dashboard', this)">Dashboard</div>
+        <div class="navitem" data-tab="lend" onclick="switchTab('lend', this)">Lend Money</div>
+        <div class="navitem" data-tab="borrow" onclick="switchTab('borrow', this)">Borrowed</div>
+        <div class="navitem" data-tab="history" onclick="switchTab('history', this)">History</div>
+        <div class="navitem" data-tab="profile" onclick="switchTab('profile', this)">Profile</div>
+        <div class="navitem" data-tab="settings" onclick="switchTab('settings', this)">Settings</div>
+      </aside>
+
+      <section class="content">
+        <!-- DASHBOARD -->
+        <div id="dashboard" class="contentPanel">
+          <h3>Welcome back, <span id="dashName">Founder</span> 👋</h3>
+          <div class="spacer"></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div style="flex:1; min-width:160px; padding:12px; border-radius:10px; background:rgba(0,0,0,0.12)">
+              <div class="small muted">Total Lent</div>
+              <div style="font-weight:800; font-size:20px" id="statLent">₹0</div>
+            </div>
+            <div style="flex:1; min-width:160px; padding:12px; border-radius:10px; background:rgba(0,0,0,0.12)">
+              <div class="small muted">Total Borrowed</div>
+              <div style="font-weight:800; font-size:20px" id="statBorrowed">₹0</div>
+            </div>
+            <div style="flex:1; min-width:160px; padding:12px; border-radius:10px; background:rgba(0,0,0,0.12)">
+              <div class="small muted">Net Balance</div>
+              <div style="font-weight:800; font-size:20px" id="statNet">₹0</div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px; padding:12px; border-radius:8px; background:rgba(0,0,0,0.06)">
+            <h4>Upcoming Due & Reminders</h4>
+            <div id="reminders" class="small muted">No upcoming due items.</div>
+          </div>
+        </div>
+
+        <!-- LEND -->
+        <div id="lend" class="contentPanel" style="display:none">
+          <h3>Add Lend</h3>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div style="flex:1; min-width:240px;">
+              <label>Name</label><input id="lendName" placeholder="Friend name">
+              <label>Phone</label><input id="lendPhone" placeholder="Mobile number">
+              <label>Amount (₹)</label><input id="lendAmount" type="number" placeholder="1000">
+              <label>Interest % (manual)</label><input id="lendInterest" type="number" placeholder="5">
+            </div>
+            <div style="flex:1; min-width:240px;">
+              <label>Date</label><input id="lendDate" type="date">
+              <label>Due Date</label><input id="lendDue" type="date">
+              <label>Notes</label><textarea id="lendNotes"></textarea>
+              <div style="margin-top:8px">
+                <button class="btn" id="addLendBtn">Save Lend</button>
+                <button class="btn ghost" id="clearLendBtn">Clear</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="lendList" style="margin-top:12px"></div>
+        </div>
+
+        <!-- BORROW -->
+        <div id="borrow" class="contentPanel" style="display:none">
+          <h3>Add Borrow</h3>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div style="flex:1; min-width:240px;">
+              <label>Name</label><input id="borName" placeholder="Lender name">
+              <label>Phone</label><input id="borPhone" placeholder="Mobile number">
+              <label>Amount (₹)</label><input id="borAmount" type="number" placeholder="500">
+            </div>
+            <div style="flex:1; min-width:240px;">
+              <label>Date</label><input id="borDate" type="date">
+              <label>Due Date</label><input id="borDue" type="date">
+              <label>Notes</label><textarea id="borNotes"></textarea>
+              <div style="margin-top:8px">
+                <button class="btn" id="addBorrowBtn">Save Borrow</button>
+                <button class="btn ghost" id="clearBorrowBtn">Clear</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="borrowList" style="margin-top:12px"></div>
+        </div>
+
+        <!-- HISTORY -->
+        <div id="history" class="contentPanel" style="display:none">
+          <h3>All Records</h3>
+          <div id="historyList" class="small muted">No history yet.</div>
+        </div>
+
+        <!-- PROFILE -->
+        <div id="profile" class="contentPanel" style="display:none">
+          <h3>Your Profile</h3>
+          <label>Your Name</label><input id="profileName" placeholder="Piyanshu K">
+          <label>Email</label><input id="profileEmail" placeholder="you@example.com">
+          <label>Phone</label><input id="profilePhone" placeholder="9876543210">
+          <div style="margin-top:10px">
+            <button class="btn" id="saveProfileBtn">Save Profile</button>
+            <button class="btn ghost" id="loadProfileBtn">Load Saved</button>
+          </div>
+          <div id="profileSaved" class="small muted" style="margin-top:8px"></div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div id="settings" class="contentPanel" style="display:none">
+          <h3>Settings</h3>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div style="min-width:220px" class="">
+              <h4>Theme</h4>
+              <div class="small">Pick a theme for this account.</div>
+              <div style="margin-top:8px">
+                <select id="settingTheme">
+                  <option value="dark">Dark (default)</option>
+                  <option value="blue">Blue Neon</option>
+                  <option value="light">Light</option>
+                </select>
+                <div style="height:8px"></div>
+                <button class="btn" id="applyThemeBtn">Apply Theme</button>
+              </div>
+            </div>
+
+            <div style="min-width:220px" class="">
+              <h4>Security</h4>
+              <div class="small">Change password</div>
+              <div style="margin-top:8px">
+                <label>Old Password</label><input id="oldPass" type="password">
+                <label>New Password</label><input id="newPassSet" type="password">
+                <div style="height:8px"></div>
+                <button class="btn" id="changePassBtn">Change Password</button>
+              </div>
+            </div>
+
+            <div style="min-width:220px" class="">
+              <h4>Account</h4>
+              <div class="small">Change username or profile name</div>
+              <div style="margin-top:8px">
+                <label>Display Name</label><input id="setName" placeholder="Your name">
+                <label>Username (new)</label><input id="setUsername" placeholder="username">
+                <div style="height:8px"></div>
+                <button class="btn" id="saveAccountBtn">Save Account</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+    <footer style="text-align:center;margin-top:12px" class="small muted">© BorrowPal • Founder Edition — Designed by Piyanshu Karmankar</footer>
+  </section>
+
+<script>
+/* ---------------- Utilities ---------------- */
+const qs = s => document.querySelector(s);
+const qsa = s => Array.from(document.querySelectorAll(s));
+const ACCS_KEY = 'borrowpal_accounts_v2';
+const CUR_USER_KEY = 'borrowpal_current_user';
+const uid = ()=> Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+function stateKeyFor(user){ return 'borrowpal_v2_' + user; }
+function loadAccounts(){ try{ return JSON.parse(localStorage.getItem(ACCS_KEY) || '{}'); }catch(e){ return {}; } }
+function saveAccounts(acc){ localStorage.setItem(ACCS_KEY, JSON.stringify(acc)); }
+function makeEmptyState(){ return { lends: [], borrows: [], profile: {name:'Founder', email:'', phone:''}, theme:'dark' }; }
+
+/* -------------- Auth Screens (strictly separate) -------------- */
+function showScreen(id){
+  ['#auth_signin','#auth_create','#auth_recover','#appScreen'].forEach(s=>{
+    const el = qs(s);
+    if(!el) return;
+    if(s === id) { el.classList.add('active'); el.style.display = (s === '#appScreen' ? 'block' : 'block'); }
+    else { el.classList.remove('active'); el.style.display = (s === '#appScreen' ? 'none' : 'none'); }
+  });
+  // scroll to top for better UX
+  document.scrollingElement.scrollTop = 0;
+}
+
+/* ------------ Create Account ------------- */
+qs('#createBtn').addEventListener('click', ()=>{
+  const u = qs('#createUser').value.trim();
+  const p = qs('#createPass').value;
+  const name = qs('#createName').value.trim();
+  const email = qs('#createEmail').value.trim();
+  const phone = qs('#createPhone').value.trim();
+  const q = qs('#createQ').value.trim();
+  const a = qs('#createA').value.trim();
+  const msgEl = qs('#createMsg');
+
+  if(!u || !p){ msgEl.textContent = 'Username & password required'; return; }
+  const accs = loadAccounts();
+  if(accs[u]){ msgEl.textContent = 'Username taken — choose another'; return; }
+
+  accs[u] = { username:u, password:p, name: name || u, email: email||'', phone:phone||'', question:q||'', answer:a||'', theme:'dark' };
+  saveAccounts(accs);
+  const st = makeEmptyState();
+  st.profile.name = name || u;
+  localStorage.setItem(stateKeyFor(u), JSON.stringify(st));
+  msgEl.textContent = 'Account created. Redirecting to sign in...';
+  setTimeout(()=>{ showScreen('#auth_signin'); }, 900);
+});
+
+/* ------------ Sign In ------------- */
+qs('#signinBtn').addEventListener('click', ()=>{
+  const u = qs('#signinUser').value.trim();
+  const p = qs('#signinPass').value;
+  const msgEl = qs('#signinMsg');
+  if(!u || !p){ msgEl.textContent = 'Enter username & password'; return; }
+  const accs = loadAccounts();
+  const acc = accs[u];
+  if(!acc || acc.password !== p){ msgEl.textContent = 'Invalid credentials'; return; }
+  // set current user and init app
+  localStorage.setItem(CUR_USER_KEY, u);
+  initForUser(u);
+  showScreen('#appScreen');
+});
+
+/* ------------ Recover ------------- */
+qs('#findUserBtn').addEventListener('click', ()=>{
+  const u = qs('#recUser').value.trim();
+  const rs = qs('#recoverStep');
+  rs.innerHTML = '';
+  const accs = loadAccounts();
+  if(!u || !accs[u]){ rs.innerHTML = '<div class="small muted">No such user</div>'; return; }
+  const acc = accs[u];
+  if(!acc.question){ rs.innerHTML = '<div class="small muted">No security question set for this account.</div>'; return; }
+  // show question prompt + answer field
+  rs.innerHTML = `<label>${escapeHtml(acc.question)}</label><input id="recoverAns" placeholder="Answer"><div style="height:8px"></div>
+    <button class="btn" id="submitRecover">Submit</button>`;
+  qs('#submitRecover').addEventListener('click', ()=> doRecover(u));
+});
+
+function doRecover(u){
+  const ans = qs('#recoverAns') ? qs('#recoverAns').value.trim() : '';
+  const rs = qs('#recoverStep');
+  const accs = loadAccounts();
+  const acc = accs[u];
+  if(!acc){ rs.innerHTML = '<div class="small muted">No such user</div>'; return; }
+  if(ans === acc.answer){
+    rs.innerHTML = `<label>Enter new password</label><input id="recoverNew" type="password"><div style="height:8px"></div>
+      <button class="btn" id="finishRecoverBtn">Reset Password</button>`;
+    qs('#finishRecoverBtn').addEventListener('click', ()=> finishRecover(u));
+  } else {
+    rs.innerHTML = '<div class="small muted" style="color:var(--danger)">Incorrect answer</div>';
+  }
+}
+function finishRecover(u){
+  const np = qs('#recoverNew') ? qs('#recoverNew').value : '';
+  const rs = qs('#recoverStep');
+  if(!np){ rs.innerHTML = '<div class="small muted">Enter a new password</div>'; return; }
+  const accs = loadAccounts();
+  if(!accs[u]){ rs.innerHTML = '<div class="small muted">User not found</div>'; return; }
+  accs[u].password = np;
+  saveAccounts(accs);
+  rs.innerHTML = '<div class="small muted">Password reset. Please sign in.</div>';
+  setTimeout(()=> showScreen('#auth_signin'), 900);
+}
+
+/* ---------- Navigation between auth screens ---------- */
+qs('#gotoCreate').addEventListener('click', ()=> showScreen('#auth_create'));
+qs('#backToSignInFromCreate').addEventListener('click', ()=> showScreen('#auth_signin'));
+qs('#gotoRecover').addEventListener('click', ()=> showScreen('#auth_recover'));
+qs('#backToSignInFromRecover').addEventListener('click', ()=> showScreen('#auth_signin'));
+
+/* ---------------- App: state and UI ---------------- */
+let CUR_USER = null;
+let USER_STATE = null;
+
+function loadUserState(user){
+  try{ const raw = localStorage.getItem(stateKeyFor(user)); if(raw) return JSON.parse(raw); }catch(e){ console.warn(e) }
+  return makeEmptyState();
+}
+function saveUserState(){
+  if(!CUR_USER || !USER_STATE) return;
+  localStorage.setItem(stateKeyFor(CUR_USER), JSON.stringify(USER_STATE));
+}
+function applyTheme(theme){
+  document.body.classList.remove('theme-light','theme-blue');
+  if(theme === 'light') document.body.classList.add('theme-light');
+  if(theme === 'blue') document.body.classList.add('theme-blue');
+}
+
+/* init after login */
+function initForUser(user){
+  CUR_USER = user;
+  USER_STATE = loadUserState(user);
+  const accs = loadAccounts();
+  const acc = accs[user] || {};
+  USER_STATE.profile = USER_STATE.profile || {};
+  USER_STATE.profile.name = USER_STATE.profile.name || acc.name || user;
+  USER_STATE.profile.email = USER_STATE.profile.email || acc.email || '';
+  USER_STATE.profile.phone = USER_STATE.profile.phone || acc.phone || '';
+  const theme = acc.theme || USER_STATE.theme || 'dark';
+  USER_STATE.theme = theme;
+  applyTheme(theme);
+
+  qs('#welcomeP').textContent = `Hi, ${USER_STATE.profile.name || user}`;
+  qs('#dashName').textContent = USER_STATE.profile.name || user;
+  qs('#pfNameSidebar').textContent = USER_STATE.profile.name || user;
+  qs('#pfEmailSidebar').textContent = USER_STATE.profile.email || '';
+  updateAll();
+  renderList('lendList', USER_STATE.lends, 'lend');
+  renderList('borrowList', USER_STATE.borrows, 'borrow');
+  renderHistory();
+  loadProfileForm();
+  qs('#settingTheme').value = USER_STATE.theme || 'dark';
+}
+
+/* ---------- Stats & rendering ---------- */
+function computeStats(){
+  const lent = (USER_STATE.lends || []).reduce((s,x)=> {
+    const A = Number(x.amount)||0;
+    const I = Number(x.interest)||0;
+    return s + A + (A * I / 100);
+  }, 0);
+  const borrowed = (USER_STATE.borrows || []).reduce((s,x)=> s + (Number(x.amount)||0), 0);
+  const net = lent - borrowed;
+  return { lent, borrowed, net };
+}
+function updateAll(){
+  if(!USER_STATE) return;
+  qs('#pfNameSidebar').textContent = USER_STATE.profile.name || CUR_USER;
+  qs('#pfEmailSidebar').textContent = USER_STATE.profile.email || '';
+  qs('#dashName').textContent = USER_STATE.profile.name || CUR_USER;
+  qs('#welcomeP').textContent = `Hi, ${USER_STATE.profile.name || CUR_USER}`;
+
+  const st = computeStats();
+  qs('#statLent').textContent = '₹' + formatNumber(st.lent);
+  qs('#statBorrowed').textContent = '₹' + formatNumber(st.borrowed);
+  qs('#statNet').textContent = '₹' + formatNumber(st.net);
+
+  const now = new Date();
+  const all = [...(USER_STATE.lends || []).map(x=>({...x, type:'lend'})), ...(USER_STATE.borrows || []).map(x=>({...x, type:'borrow'}))];
+  const upcoming = all.filter(r => r.due)
+    .map(r => ({ ...r, dueDays: Math.ceil((new Date(r.due) - now)/(1000*60*60*24)) }))
+    .sort((a,b)=> a.dueDays - b.dueDays)
+    .slice(0,6);
+  const remEl = qs('#reminders');
+  if(!upcoming.length) remEl.innerHTML = '<div class="small muted">No upcoming due items.</div>';
+  else remEl.innerHTML = upcoming.map(u => {
+    const when = u.dueDays < 0 ? `<span style="color:${getColor('danger')}">Overdue ${Math.abs(u.dueDays)}d</span>` : `${u.dueDays} day(s)`;
+    return `<div style="padding:8px;border-radius:8px;background:rgba(0,0,0,0.06);margin-bottom:8px">
+      <div style="font-weight:700">${u.type==='lend' ? 'To: ' : 'From: '}${escapeHtml(u.name)}</div>
+      <div class="small muted">${escapeHtml(u.phone||u.notes||'')} • ${u.due || '—'}</div>
+      <div class="rightAlign small">${when}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderList(elid, items, kind){
+  const el = qs('#' + elid);
+  if(!el) return;
+  if(!items || !items.length){ el.innerHTML = `<div class="small muted">No records yet.</div>`; return; }
+  el.innerHTML = items.map(it => {
+    const profit = kind==='lend' ? ((Number(it.amount)||0) * (Number(it.interest)||0) / 100).toFixed(2) : null;
+    const daysLeft = it.due ? Math.ceil((new Date(it.due) - new Date())/(1000*60*60*24)) : null;
+    const dueText = it.due ? (daysLeft < 0 ? `Overdue ${Math.abs(daysLeft)}d` : `${daysLeft}d left`) : 'No due';
+    return `<div style="padding:12px;border-radius:10px;background:rgba(0,0,0,0.04);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-weight:800">${escapeHtml(it.name)} ${it.phone?`• ${escapeHtml(it.phone)}`:''}</div>
+        <div class="small muted">${escapeHtml(it.notes||'')}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:800">₹${formatNumber(it.amount)}</div>
+        ${profit? `<div class="small muted">Interest ₹${formatNumber(profit)}</div>` : ''}
+        <div class="small">${dueText}</div>
+        <div style="margin-top:8px">
+          <button class="btn ghost" onclick="markReturned('${it.id}','${kind}')">${it.returned? 'Unmark' : 'Mark Return'}</button>
+          <button class="btn ghost" onclick="quickAlert('${it.id}','${kind}')">Alert</button>
+          <button class="btn" onclick="deleteRecord('${it.id}','${kind}')">Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderHistory(){
+  const merged = [
+    ...(USER_STATE.lends||[]).map(x=>({...x, kind:'lend'})),
+    ...(USER_STATE.borrows||[]).map(x=>({...x, kind:'borrow'}))
+  ].sort((a,b)=> new Date(b.date) - new Date(a.date));
+  const el = qs('#historyList');
+  if(!merged.length){ el.innerHTML = '<div class="small muted">No history yet.</div>'; return; }
+  el.innerHTML = merged.map(m => `<div style="padding:8px;border-radius:8px;background:rgba(0,0,0,0.04);margin-bottom:8px;display:flex;justify-content:space-between">
+    <div>
+      <div style="font-weight:700">${m.kind==='lend'?'Lent to':'Borrowed from'} ${escapeHtml(m.name)}</div>
+      <div class="small muted">${m.date || ''} • ${escapeHtml(m.notes||'')}</div>
+    </div>
+    <div style="font-weight:800">₹${formatNumber(m.amount)}</div>
+  </div>`).join('');
+}
+
+/* ---------- Actions ---------- */
+qs('#addLendBtn').addEventListener('click', addLend);
+qs('#clearLendBtn').addEventListener('click', ()=>{ ['#lendName','#lendPhone','#lendAmount','#lendInterest','#lendDate','#lendDue','#lendNotes'].forEach(s=>qs(s).value='') });
+qs('#addBorrowBtn').addEventListener('click', addBorrow);
+qs('#clearBorrowBtn').addEventListener('click', ()=>{ ['#borName','#borPhone','#borAmount','#borDate','#borDue','#borNotes'].forEach(s=>qs(s).value='') });
+
+function addLend(){
+  if(!ensureSignedIn()) return;
+  const name = qs('#lendName').value.trim(); if(!name){ alert('Enter name'); return; }
+  const rec = {
+    id: uid(), name, phone: qs('#lendPhone').value.trim(), amount: Number(qs('#lendAmount').value)||0,
+    interest: Number(qs('#lendInterest').value)||0, date: qs('#lendDate').value||new Date().toISOString().slice(0,10),
+    due: qs('#lendDue').value||'', notes: qs('#lendNotes').value||'', returned:false
+  };
+  USER_STATE.lends.unshift(rec); saveUserState(); updateAll(); qs('#lendName').value=''; renderList('lendList', USER_STATE.lends, 'lend'); renderHistory();
+}
+function addBorrow(){
+  if(!ensureSignedIn()) return;
+  const name = qs('#borName').value.trim(); if(!name){ alert('Enter name'); return; }
+  const rec = { id: uid(), name, phone: qs('#borPhone').value.trim(), amount:Number(qs('#borAmount').value)||0, date:qs('#borDate').value||new Date().toISOString().slice(0,10), due:qs('#borDue').value||'', notes:qs('#borNotes').value||'', returned:false };
+  USER_STATE.borrows.unshift(rec); saveUserState(); updateAll(); qs('#borName').value=''; renderList('borrowList', USER_STATE.borrows, 'borrow'); renderHistory();
+}
+
+function deleteRecord(id, kind){
+  if(!confirm('Delete this record?')) return;
+  if(kind==='lend') USER_STATE.lends = (USER_STATE.lends||[]).filter(x=>x.id!==id);
+  else USER_STATE.borrows = (USER_STATE.borrows||[]).filter(x=>x.id!==id);
+  saveUserState(); updateAll();
+  renderList(kind==='lend'?'lendList':'borrowList', kind==='lend'?USER_STATE.lends:USER_STATE.borrows, kind);
+  renderHistory();
+}
+function markReturned(id, kind){
+  const arr = kind==='lend' ? USER_STATE.lends : USER_STATE.borrows;
+  const idx = (arr||[]).findIndex(x=>x.id===id); if(idx<0) return;
+  arr[idx].returned = !arr[idx].returned;
+  saveUserState(); updateAll();
+  renderList(kind==='lend'?'lendList':'borrowList', arr, kind);
+}
+
+/* Quick alert */
+function quickAlert(id, kind){
+  const arr = kind==='lend' ? USER_STATE.lends : USER_STATE.borrows;
+  const rec = (arr||[]).find(x=>x.id===id);
+  if(!rec) return;
+  const msg = kind==='lend'
+    ? `Hi ${rec.name}, friendly reminder: you owe me ₹${rec.amount}${rec.due?` due on ${rec.due}`:''}.`
+    : `Hi ${rec.name}, friendly reminder: I owe you ₹${rec.amount}${rec.due?` due on ${rec.due}`:''}.`;
+  const choose = confirm('Press OK to send via WhatsApp, Cancel to send via SMS (mobile only).');
+  if(choose){
+    const wa = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(wa, '_blank');
+  } else {
+    window.location.href = `sms:?body=${encodeURIComponent(msg)}`;
+  }
+}
+
+/* ---------- Profile ---------- */
+qs('#saveProfileBtn').addEventListener('click', saveProfile);
+qs('#loadProfileBtn').addEventListener('click', loadProfileForm);
+
+function saveProfile(){
+  if(!ensureSignedIn()) return;
+  USER_STATE.profile.name = qs('#profileName').value.trim();
+  USER_STATE.profile.email = qs('#profileEmail').value.trim();
+  USER_STATE.profile.phone = qs('#profilePhone').value.trim();
+  saveUserState(); updateAll();
+  qs('#profileSaved').textContent = 'Profile saved locally.';
+}
+function loadProfileForm(){
+  if(!USER_STATE) return;
+  qs('#profileName').value = USER_STATE.profile.name || '';
+  qs('#profileEmail').value = USER_STATE.profile.email || '';
+  qs('#profilePhone').value = USER_STATE.profile.phone || '';
+  qs('#profileSaved').textContent = 'Loaded saved profile.';
+}
+
+/* ---------- Export & Reset ---------- */
+function exportCSV(){
+  if(!ensureSignedIn()) return;
+  const rows = [['type','id','name','phone','amount','interest','date','due','notes','returned']];
+  (USER_STATE.lends||[]).forEach(r => rows.push(['lend', r.id, r.name, r.phone, r.amount, r.interest, r.date, r.due, (r.notes||''), r.returned||false]));
+  (USER_STATE.borrows||[]).forEach(r => rows.push(['borrow', r.id, r.name, r.phone, r.amount, 0, r.date, r.due, (r.notes||''), r.returned||false]));
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `${CUR_USER||'borrowpal'}_records.csv`; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function resetAll(){
+  if(!ensureSignedIn()) return;
+  if(!confirm('Reset everything for your account? This will clear all your data stored locally.')) return;
+  USER_STATE = makeEmptyState();
+  saveUserState();
+  updateAll();
+  renderList('lendList', USER_STATE.lends, 'lend');
+  renderList('borrowList', USER_STATE.borrows, 'borrow');
+  renderHistory();
+  alert('All your data cleared (local).');
+}
+
+/* ---------- Account changes & password ---------- */
+qs('#applyThemeBtn').addEventListener('click', ()=>{
+  const t = qs('#settingTheme').value;
+  applyTheme(t);
+  if(USER_STATE){ USER_STATE.theme = t; saveUserState(); }
+  const accs = loadAccounts(); if(CUR_USER && accs[CUR_USER]){ accs[CUR_USER].theme = t; saveAccounts(accs); }
+  alert('Theme applied: ' + t);
+});
+
+qs('#changePassBtn').addEventListener('click', ()=>{
+  if(!ensureSignedIn()) return;
+  const oldp = qs('#oldPass').value;
+  const newp = qs('#newPassSet').value;
+  const accs = loadAccounts();
+  if(!accs[CUR_USER]) return alert('Account not found');
+  if(accs[CUR_USER].password !== oldp){ return alert('Old password incorrect'); }
+  if(!newp){ return alert('Enter new password'); }
+  accs[CUR_USER].password = newp; saveAccounts(accs);
+  qs('#oldPass').value = qs('#newPassSet').value = '';
+  alert('Password changed');
+});
+
+qs('#saveAccountBtn').addEventListener('click', ()=>{
+  if(!ensureSignedIn()) return;
+  const newName = qs('#setName').value.trim();
+  const newUser = qs('#setUsername').value.trim();
+  const accs = loadAccounts();
+  if(newUser && newUser !== CUR_USER){
+    if(accs[newUser]){ alert('Username already taken'); return; }
+    accs[newUser] = Object.assign({}, accs[CUR_USER], { username: newUser, name: newName || accs[CUR_USER].name });
+    delete accs[CUR_USER];
+    saveAccounts(accs);
+    localStorage.setItem(stateKeyFor(newUser), JSON.stringify(USER_STATE));
+    localStorage.removeItem(stateKeyFor(CUR_USER));
+    localStorage.setItem(CUR_USER_KEY, newUser);
+    CUR_USER = newUser;
+    alert('Username changed to ' + newUser + '. You are now signed in as ' + newUser);
+  } else {
+    if(newName){ USER_STATE.profile.name = newName; saveUserState(); }
+    if(CUR_USER && accs[CUR_USER]){ accs[CUR_USER].name = newName || accs[CUR_USER].name; saveAccounts(accs); }
+    alert('Profile updated');
+  }
+  initForUser(CUR_USER);
+});
+
+/* ---------- Navigation & session ---------- */
+function switchTab(tab, el){
+  qsa('.navitem').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  qsa('.contentPanel').forEach(p=>p.style.display='none');
+  const panel = qs('#'+tab);
+  if(panel) panel.style.display = 'block';
+  updateAll();
+}
+
+function ensureSignedIn(){
+  if(!CUR_USER){ showScreen('#auth_signin'); return false; }
+  return true;
+}
+
+/* ---------- Helpers ---------- */
+function formatNumber(n){ return Number(n||0).toLocaleString('en-IN', {maximumFractionDigits:2}) }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+function getColor(key){ return key==='danger'? 'var(--danger)' : key==='success'? 'var(--success)' : '#fff' }
+
+/* ---------- Sign out / init ---------- */
+qs('#logoutBtn').addEventListener('click', ()=>{
+  localStorage.removeItem(CUR_USER_KEY);
+  CUR_USER = null;
+  USER_STATE = null;
+  showScreen('#auth_signin');
+});
+
+qs('#themeToggle').addEventListener('click', ()=>{
+  // cycle theme
+  const list = ['dark','blue','light'];
+  const cur = (USER_STATE && USER_STATE.theme) || 'dark';
+  const idx = (list.indexOf(cur) + 1) % list.length;
+  const next = list[idx];
+  applyTheme(next);
+  if(USER_STATE){ USER_STATE.theme = next; saveUserState(); }
+  const accs = loadAccounts(); if(CUR_USER && accs[CUR_USER]){ accs[CUR_USER].theme = next; saveAccounts(accs); }
+  qs('#settingTheme').value = next;
+});
+
+/* ---------- Init on load ---------- */
+function tryAutoSignIn(){
+  const cur = localStorage.getItem(CUR_USER_KEY);
+  const accs = loadAccounts();
+  if(cur && accs[cur]){
+    initForUser(cur);
+    showScreen('#appScreen');
+  } else {
+    showScreen('#auth_signin');
+  }
+}
+
+/* run */
+tryAutoSignIn();
+
+/* small safety exports to console for debug (optional) */
+window._bp = {
+  loadAccounts, saveAccounts, loadUserState, saveUserState, stateKeyFor
+};
+</script>
+</body>
+</html>
